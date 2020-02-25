@@ -1,0 +1,40 @@
+/*.wy-nav-content {
+    max-width: 80%;
+}*/
+
+.rst-content dl:not(.docutils) dt em {
+    color: black;
+}
+
+dl.function em:not(.property) {
+    padding-left: 0.4em;
+}
+
+dl.group dt em {
+    padding-right: 0.4em;
+}
+
+.rst-content dl.function:not(.docutils) dt {
+    display: table;
+}
+.rst-content dl:not(.docutils) dt {
+    display: table;
+}
+
+.rst-content dl:not(.docutils) .property {
+    color: #2980B9;
+}
+
+.function {
+    padding-left: 0.5em;
+}
+
+.member {
+    padding-left: 0.5em;
+}
+
+/* This could be from a possible *bug* in breathe, that force to render content
+   previous to a variable <link> inside a different <p> */
+/*.rst-content dl p, .rst-content dl table, .rst-content dl ul, .rst-content dl ol {
+    display: inline;
+}*/
