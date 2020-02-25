@@ -1,11 +1,11 @@
 from conans import ConanFile, CMake, tools
 import os
 
-class ResourcerConan(ConanFile):
-    name = "resourcer"
+class SmugglerConan(ConanFile):
+    name = "smuggler"
     version = "0.1"
     license = "GNU GPL v3"
-    url = "https://gitlab.com/philabs/resourcer"
+    url = "https://gitlab.com/philabs/smuggler"
     settings = "os", "compiler", "build_type", "arch"
     options = {"shared": [True, False], "tests": [True, False]}
     generators = "cmake", "ycm"
@@ -28,22 +28,22 @@ class ResourcerConan(ConanFile):
     )
 
     def source(self):
-        self.run("git clone https://gitlab.com/philabs/resourcer")
-        self.run("cd resourcer && git checkout develop")
+        self.run("git clone https://gitlab.com/philabs/smuggler")
+        self.run("cd smuggler && git checkout develop")
 
     def build(self):
         cmake = CMake(self, parallel=True)
         if self.options.tests:
             cmake.definitions["CMAKE_BUILD_TESTS"] = "ON"
             cmake.definitions["BUILD_SHARED_LIBS"] = "ON"
-        cmake.configure(source_folder="resourcer")
+        cmake.configure(source_folder="smuggler")
         cmake.build(target="install")
 
     def imports(self):
         self.copy("*.dll", "bin")
 
     def package(self):
-        self.copy("*.h", dst="include", src="resourcer/include")
+        self.copy("*.h", dst="include", src="smuggler/include")
         self.copy("*Service.lib", dst="lib", keep_path=False)
         self.copy("*.dll", dst="lib", keep_path=False)
         self.copy("*.so", dst="lib", keep_path=False)
@@ -51,4 +51,4 @@ class ResourcerConan(ConanFile):
         self.copy("*.a", dst="lib", keep_path=False)
 
     def package_info(self):
-        self.cpp_info.libs = ["ResourcerServ"]
+        self.cpp_info.libs = ["smuggler"]
