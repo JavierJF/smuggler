@@ -70,8 +70,8 @@ Either<ParseError,Vector<Pair<String, Token>>> tokenize(const String& str, const
     State initial { { str, tokens }, {} };
 
     auto isFinal = Fn<bool(const State&)>([](const State& s) -> bool {
-        auto rest = s.first.first;
-        auto delims = s.first.second;
+        auto rest { s.first.first };
+        auto delims { s.first.second };
 
         if (rest.empty() && delims.empty()) {
             return true;
@@ -82,20 +82,21 @@ Either<ParseError,Vector<Pair<String, Token>>> tokenize(const String& str, const
 
     auto compute = Fn<Either<ParseError, State>(State&&)> (
         [](State&& curState) -> Either<ParseError, State> {
-            auto rest = curState.first.first;
-            auto delims = curState.first.second;
-            auto pResults = curState.second;
+            auto rest { curState.first.first };
+            auto delims { curState.first.second };
+            auto pResults { curState.second };
 
             if (delims.empty() || rest.empty()) {
                 if (delims.empty() != true && rest.empty()) {
-                    String tokensLeft = "[";
+                    String tokensLeft { "[" };
 
                     while (!delims.empty()) {
                         tokensLeft += "[";
-                        auto nextDelims = delims.front();
+                        auto nextDelims { delims.front() };
 
                         while (!nextDelims.empty()) {
-                            auto curDelims = nextDelims.front();
+                            auto curDelims { nextDelims.front() };
+
                             tokensLeft.append( String(get<0>( curDelims ) + ",") );
                             nextDelims.pop_front();
                         }
@@ -116,16 +117,16 @@ Either<ParseError,Vector<Pair<String, Token>>> tokenize(const String& str, const
                     return State { { {}, {} }, pResults };
                 }
             } else {
-                auto curDelims = delims.front();
-
+                auto curDelims { delims.front() };
                 Either<ParseError, State> nextState { ParseError {-1, "No valid tokens found."} };
-                for (const auto& delim : curDelims) {
-                    auto eRes = tokenize(rest, delim);
 
-                    auto elemsToState = Fn<State(const Elems&)>(
+                for (const auto& delim : curDelims) {
+                    auto eRes { tokenize(rest, delim) };
+
+                    auto elemsToState { Fn<State(const Elems&)>(
                         [&delim, &rest, &delims, &pResults] (const Elems& elems) -> State {
-                            size_t offset = elems.second;
-                            Vector<String> parsed = elems.first;
+                            size_t offset { elems.second };
+                            Vector<String> parsed { elems.first };
 
                             String rRest {};
                             if (!rest.empty()) {
@@ -144,12 +145,12 @@ Either<ParseError,Vector<Pair<String, Token>>> tokenize(const String& str, const
                                 return Pair<String, Token> { pElem, std::get<0>(delim) };
                             });
 
-                            Vector<Pair<String, Token>> parsedTokens = fmap(addTokens, parsed);
+                            Vector<Pair<String, Token>> parsedTokens { fmap(addTokens, parsed) };
                             updResults.insert(updResults.end(), parsedTokens.begin(), parsedTokens.end());
 
                             return State { { rRest, rDelims }, updResults };
                         }
-                    );
+                    )};
 
                     nextState = fmap(elemsToState, eRes);
                     if (isRight(nextState)) {
@@ -162,13 +163,12 @@ Either<ParseError,Vector<Pair<String, Token>>> tokenize(const String& str, const
         }
     );
 
-    auto eRes = While(move(initial), isFinal, compute);
+    auto eRes { While(move(initial), isFinal, compute) };
 
     if (isLeft(eRes)) {
         return fromLeft(eRes);
     } else {
         auto result = fromRight(eRes);
-
         return result.second;
     }
 }
