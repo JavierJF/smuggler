@@ -21,8 +21,6 @@
 #include <atomic>
 
 using Socket = boost::asio::ip::tcp::socket;
-template <class T>
-using Fn = std::function<T>;
 using Phi::Either;
 using Phi::While;
 using Phi::SVar;
@@ -54,6 +52,7 @@ Either<boost::system::error_code, std::string> readline(Socket& socket) {
 
 boost::system::error_code sendline(Socket& socket, const std::string& str ) {
     const std::string msg = str + "\n";
+
     try {
         boost::asio::write( socket, boost::asio::buffer(msg) );
     } catch (boost::system::system_error& ex) {
@@ -63,7 +62,7 @@ boost::system::error_code sendline(Socket& socket, const std::string& str ) {
     return boost::system::error_code();
 }
 
-bool isErrorOrShutdown(Either<boost::system::error_code, ServiceActionCode> msg) {
+bool isErrorOrShutdown(const Either<boost::system::error_code, ServiceActionCode>& msg) {
     auto res =
         pMatch(
             msg,
@@ -107,7 +106,7 @@ bool isErrorOrShutdown(Either<boost::system::error_code, ServiceActionCode> msg)
  */
 auto procNewRequest(
     SVar<RequestQueue>&      requestQueue,
-    SVar<LogQueue>&          sLogQueuye,
+    SVar<LogQueue>&          sLogQueue,
     std::shared_ptr<Socket>& sock
 ) -> Either<boost::system::error_code, ServiceActionCode>
 {
@@ -191,10 +190,16 @@ void tcpReceiver(
     );
 
     auto res =
-        WhileA(
+        Phi::WhileA<
+            ServiceActionCode,
+            boost::system::error_code,
+            SVar<RequestQueue>&,
+            SVar<LogQueue>&,
+            std::shared_ptr<Socket>&
+        > (
             ServiceActionCode::ServAction_KeepAlive,
-            Fn<bool(ProcRes)>(isErrorOrShutdown),
-            Fn<ProcRes(SVar<RequestQueue>&, SVar<LogQueue>&, SharedPtr<Socket>&)>(procNewRequest),
+            Phi::Fn<bool(const ProcRes&)>(isErrorOrShutdown),
+            Phi::Fn<ProcRes(SVar<RequestQueue>&, SVar<LogQueue>&, SharedPtr<Socket>&)>(procNewRequest),
             sReqQueue,
             sLogQueue,
             socket
@@ -206,7 +211,7 @@ void tcpReceiver(
 
     std::shared_ptr<Socket> sock(new Socket(acceptor.get_io_service()));
 
-    std::function <void(const boost::system::error_code&)> acceptHandler =
+    Phi::Fn<void(const boost::system::error_code&)> acceptHandler =
         std::bind(
             tcpReceiver,
             std::placeholders::_1,
@@ -263,8 +268,8 @@ errno_t startNetService(
     // ========================================================================
     std::thread _netServiceThread(
         [port, &sReqQueue, &sLogQueue, &sStopFlag, &resCode, &options] () {
-            const String& tlsCertPath = options.tlsCertPath;
-            const String& tlsDhCertPath = options.tlsDhCertPath;
+            const String& tlsCertPath { options.tlsCertPath };
+            const String& tlsDhCertPath { options.tlsDhCertPath };
 
             // Try to init to create a io_service and assign and endpoint to it.
             // =================================================================
@@ -284,12 +289,14 @@ errno_t startNetService(
 
             pMatch(eAcceptor,
                 [&resCode] (boost::system::error_code error) {
-                    resCode = static_cast<fnerr_t>(error.value());
+                    resCode = static_cast<fnerr_t>( error.value() );
                 },
                 [&io_service, &sReqQueue, &sLogQueue, &sStopFlag] (auto& acceptor) {
-                    std::shared_ptr<Socket> sock(new Socket(acceptor.get_io_service()));
+                    std::shared_ptr<Socket> sock {
+                        new Socket( acceptor.get_io_service() )
+                    };
 
-                    std::function <void(const boost::system::error_code&)> acceptHandler =
+                    Phi::Fn<void(const boost::system::error_code&)> acceptHandler =
                         std::bind(
                             tcpReceiver,
                             std::placeholders::_1,
